@@ -1,0 +1,16 @@
+version: 2
+
+# These tables are produced by the Spark/Glue jobs (fact_view_sessions, dims).
+# dbt treats them as read-only SOURCES — the hybrid boundary: Spark builds the
+# heavy facts/dims; dbt builds the SQL-shaped reporting marts on top.
+sources:
+  - name: processed
+    database: awsdatacatalog        # Athena catalog
+    schema: streaming_processed       # Glue database
+    tables:
+      - name: fact_view_sessions
+        description: "Session-grain accumulating fact (Glue: fact_view_sessions.py)."
+      - name: dim_title
+        description: "Title dimension sourced from IMDb title_basics."
+      - name: dim_device
+        description: "Device dimension."

@@ -1,0 +1,34 @@
+# dbt-athena profile for the Streaming DW marts.
+# Standalone: keep this here and run with `--profiles-dir .`, or copy to ~/.dbt/.
+# Cosmos (later) injects an equivalent profile from the Airflow aws_default conn.
+#
+# Athena runs in us-east-1; the Iceberg warehouse bucket is us-west-2 (same split
+# the Glue jobs handle). See README for the cross-region caveat before first run.
+streaming:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      region_name: us-east-1
+      # Athena catalog (Glue) — sources live in streaming_processed, marts here.
+      database: awsdatacatalog
+      schema: streaming_reporting
+      # Where Athena writes query results (ops bucket, us-east-1).
+      s3_staging_dir: s3://acme-dw-streaming-xs2026-use1-ops/athena-results/dbt/
+      # Where Iceberg table DATA lands (the warehouse, us-west-2).
+      s3_data_dir: s3://acme-dw-streaming-xs2026/
+      s3_data_naming: schema_table
+      work_group: streaming-dw-dev-wg
+      threads: 4
+    # Scratch target — writes marts to streaming_reporting_dbt so smoke tests don't
+    # touch the Spark-built tables in streaming_reporting. Use: dbt ... --target safe
+    safe:
+      type: athena
+      region_name: us-east-1
+      database: awsdatacatalog
+      schema: streaming_reporting_dbt
+      s3_staging_dir: s3://acme-dw-streaming-xs2026-use1-ops/athena-results/dbt/
+      s3_data_dir: s3://acme-dw-streaming-xs2026/
+      s3_data_naming: schema_table
+      work_group: streaming-dw-dev-wg
+      threads: 4

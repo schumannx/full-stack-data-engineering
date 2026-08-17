@@ -1,0 +1,72 @@
+version: 2
+
+# These declarative tests replace chunks of common/validation.py. dbt runs them
+# as `dbt test`; under Cosmos each becomes its own Airflow task.
+models:
+  - name: content_engagement_daily
+    description: "Per-title daily engagement marts."
+    columns:
+      - name: engagement_date
+        tests: [not_null]
+      - name: title_key
+        tests: [not_null]
+      - name: completion_rate
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [engagement_date, title_key]
+
+  - name: device_engagement_daily
+    description: "Per-device-type/platform daily engagement marts."
+    columns:
+      - name: engagement_date
+        tests: [not_null]
+      - name: completion_rate
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [engagement_date, device_type, platform]
+
+  - name: genre_mix_daily
+    description: "Daily genre share of total watch time (sums to ~100% per day)."
+    columns:
+      - name: engagement_date
+        tests: [not_null]
+      - name: genre
+        tests: [not_null]
+      - name: pct_of_day
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [engagement_date, genre]
+
+  - name: title_completion_funnel
+    description: "Per-title completion deciles (bucket 0..9)."
+    columns:
+      - name: engagement_date
+        tests: [not_null]
+      - name: bucket
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 9
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [engagement_date, title_key, bucket]

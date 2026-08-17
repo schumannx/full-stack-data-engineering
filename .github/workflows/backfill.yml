@@ -1,0 +1,106 @@
+# Manual, governed backfill via the Airflow REST API — generic over DAG + task.
+#
+# AIRFLOW 3 NOTE: the REST API is now /api/v2 and auth is JWT (not basic auth on
+# /api/v1). This workflow first exchanges username/password for a bearer token at
+# /auth/token (FAB auth manager), then calls /api/v2. Verify the token endpoint
+# shape against your deployed instance before relying on it.
+#
+# HOW IT RUNS: Actions tab -> "Airflow backfill (manual)" -> Run workflow -> fill
+# the form (dag_id, task_id, dates, mode) -> Run. You NEVER edit this file to
+# change which table/dates you backfill — those are form inputs. Every run is
+# logged in the Actions tab (audit trail).
+#
+# PREREQUISITES (GitHub repo Settings -> Secrets and variables -> Actions):
+#   AIRFLOW_URL       e.g. https://airflow.your-ecs-domain.com   (NO trailing slash)
+#   AIRFLOW_USER      e.g. airflow
+#   AIRFLOW_PASSWORD  e.g. (your password)
+#
+# ⚠️ NETWORK: the GitHub runner reaches your DEPLOYED (ECS) Airflow, NOT
+# http://localhost:8080. For local backfills, curl directly.
+
+name: Airflow backfill (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "clear = rebuild a task (+downstream) on existing runs (Method A) | trigger-window = one new run over a date window (Method B)"
+        type: choice
+        options:
+          - clear
+          - trigger-window
+        default: clear
+      dag_id:
+        description: "DAG id"
+        required: true
+        default: streaming_microbatch
+      task_id:
+        description: "Task id to clear (clear mode only; ignored for trigger-window)"
+        required: false
+        default: glue_fact_playback_events
+      start_date:
+        description: "Start date (YYYY-MM-DD, UTC)"
+        required: true
+      end_date:
+        description: "End date (YYYY-MM-DD, UTC)"
+        required: true
+      include_downstream:
+        description: "Clear mode: also clear downstream tasks"
+        type: boolean
+        default: true
+      dry_run:
+        description: "Clear mode: preview only — set false to actually clear"
+        type: boolean
+        default: true
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo what will run
+        run: |
+          echo "mode=${{ inputs.mode }} dag=${{ inputs.dag_id }} task=${{ inputs.task_id }}"
+          echo "window ${{ inputs.start_date }} .. ${{ inputs.end_date }}"
+          echo "include_downstream=${{ inputs.include_downstream }} dry_run=${{ inputs.dry_run }}"
+
+      - name: Get API token (Airflow 3 JWT)
+        run: |
+          TOKEN=$(curl -fsS -X POST "${{ secrets.AIRFLOW_URL }}/auth/token" \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"${{ secrets.AIRFLOW_USER }}\",\"password\":\"${{ secrets.AIRFLOW_PASSWORD }}\"}" \
+            | jq -r .access_token)
+          echo "::add-mask::$TOKEN"
+          echo "AF_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Method A — clear task (+downstream) over the range
+        if: ${{ inputs.mode == 'clear' }}
+        run: |
+          curl -fsS -X POST "${{ secrets.AIRFLOW_URL }}/api/v2/dags/${{ inputs.dag_id }}/clearTaskInstances" \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${{ env.AF_TOKEN }}" \
+            -d "{
+                  \"dry_run\": ${{ inputs.dry_run }},
+                  \"task_ids\": [\"${{ inputs.task_id }}\"],
+                  \"start_date\": \"${{ inputs.start_date }}T00:00:00Z\",
+                  \"end_date\": \"${{ inputs.end_date }}T00:00:00Z\",
+                  \"include_downstream\": ${{ inputs.include_downstream }},
+                  \"include_upstream\": false,
+                  \"reset_dag_runs\": true
+                }"
+
+      - name: Method B — trigger one run covering the date window
+        if: ${{ inputs.mode == 'trigger-window' }}
+        # Assumes the target DAG reads conf keys data_interval_start/end (project
+        # convention). logical_date is optional in Airflow 3, hence null.
+        run: |
+          curl -fsS -X POST "${{ secrets.AIRFLOW_URL }}/api/v2/dags/${{ inputs.dag_id }}/dagRuns" \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${{ env.AF_TOKEN }}" \
+            -d "{
+                  \"dag_run_id\": \"backfill_${{ inputs.start_date }}_${{ inputs.end_date }}_${{ github.run_id }}\",
+                  \"logical_date\": null,
+                  \"conf\": {
+                    \"data_interval_start\": \"${{ inputs.start_date }}T00:00:00+00:00\",
+                    \"data_interval_end\": \"${{ inputs.end_date }}T00:00:00+00:00\"
+                  }
+                }"

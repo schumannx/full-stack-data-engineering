@@ -1,0 +1,33 @@
+# systemd unit for the always-on landing consumer (skill #03).
+# Install on the consumer EC2:
+#   sudo cp streaming-consumer.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now streaming-consumer
+#
+# Single instance only — do NOT run multiple copies (concurrent Iceberg commit
+# conflicts; DESIGN.md §3.4). Restart=always keeps it up; the consumer drains its
+# buffer and commits offsets on SIGTERM so a restart loses no data.
+[Unit]
+Description=Streaming landing consumer (Kafka -> Iceberg)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/opt/streaming/kafka
+Environment=KAFKA_BOOTSTRAP=localhost:9092
+Environment=KAFKA_TOPIC=streaming.playback_events
+Environment=KAFKA_GROUP=landing-writer
+Environment=AWS_REGION=us-east-1
+Environment=STREAMING_S3_BUCKET=acme-dw-streaming-xs2026
+Environment=FLUSH_MAX_ROWS=50000
+Environment=FLUSH_MAX_SECONDS=60
+ExecStart=/opt/streaming/kafka/.venv/bin/python /opt/streaming/kafka/consumer.py
+Restart=always
+RestartSec=5
+# Give the consumer time to flush + commit on shutdown before SIGKILL.
+TimeoutStopSec=120
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# Provider packages layered on top of the base apache/airflow image.
+# Versions are resolved against the Airflow constraints file (see Dockerfile),
+# so we deliberately do NOT hard-pin minor versions here.
+apache-airflow-providers-amazon
+# Airflow 3 splits these out; pinned via constraints. celery = CeleryExecutor,
+# fab = the FAB auth manager (username/password login + `airflow users create`).
+apache-airflow-providers-celery
+apache-airflow-providers-fab
+# Cosmos orchestrates the dbt marts as Airflow tasks. It's lightweight and does
+# NOT pull dbt-core — dbt runs in its own venv (see Dockerfile) to avoid clashes.
+astronomer-cosmos

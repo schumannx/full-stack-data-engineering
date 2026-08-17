@@ -1,0 +1,26 @@
+name: "streaming"
+version: "1.0.0"
+config-version: 2
+
+# Uses the `streaming` profile (see profiles.yml in this dir, or ~/.dbt/profiles.yml).
+profile: "streaming"
+
+model-paths: ["models"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages", "logs"]
+
+require-dbt-version: [">=1.7.0", "<2.0.0"]
+
+# Optional var: when set, incremental runs rebuild only that day's partition.
+# Leave empty for a full (re)build of all days present in fact_view_sessions.
+vars:
+  engagement_date: ""
+
+models:
+  streaming:
+    reporting:
+      # All four marts are Iceberg incremental tables MERGEd by their grain.
+      +materialized: incremental
+      +incremental_strategy: merge
+      +table_type: iceberg
+      +format: parquet

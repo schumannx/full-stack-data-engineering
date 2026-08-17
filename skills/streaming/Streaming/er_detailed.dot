@@ -1,0 +1,163 @@
+digraph ER {
+  rankdir=LR;
+  bgcolor="white";
+  graph [splines=spline, nodesep=0.45, ranksep=1.6, pad=0.3, margin=0.2];
+  node  [shape=plaintext, fontname="Helvetica"];
+  edge  [color="#595959", penwidth=1.3, dir=both, arrowhead=crow, arrowtail=tee];
+  dim_title [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_title</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">title_key</TD></TR>
+<TR><TD BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>NK</B></FONT></TD><TD ALIGN="LEFT">tconst</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">primary_title</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">title_type</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">genres</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">runtime_minutes</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">imdb_rating</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">num_votes</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">release_year</TD></TR>
+</TABLE>
+>];
+  dim_customer [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_customer</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">customer_key</TD></TR>
+<TR><TD BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>NK</B></FONT></TD><TD ALIGN="LEFT">customer_id</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">email_hash</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">signup_date</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">country</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">plan_tier</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">age_band</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">household_size</TD></TR>
+</TABLE>
+>];
+  dim_device [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_device</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">device_key</TD></TR>
+<TR><TD BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>NK</B></FONT></TD><TD ALIGN="LEFT">device_id</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">device_type</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">platform</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">device_model</TD></TR>
+</TABLE>
+>];
+  dim_device_version [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_device_version</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">device_version_key</TD></TR>
+<TR><TD BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>NK</B></FONT></TD><TD ALIGN="LEFT">device_version_id</TD></TR>
+<TR><TD PORT="fk_dev" BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">device_key</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">os_version</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">app_version</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">is_deprecated</TD></TR>
+</TABLE>
+>];
+  dim_date [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_date</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#D9E2F3" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">date_key</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">full_date</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">year / quarter / month / day</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">month_name / day_name</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">week_of_year</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">is_weekend</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">is_premiere_friday</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">season</TD></TR>
+</TABLE>
+>];
+  dim_genre [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#548235"><FONT COLOR="white" POINT-SIZE="13"><B>dim_genre</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#E2EFDA" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">genre_key</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">genre_name</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">genre_category</TD></TR>
+</TABLE>
+>];
+  dim_time_of_day [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#548235"><FONT COLOR="white" POINT-SIZE="13"><B>dim_time_of_day</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#E2EFDA" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">hour_key</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">hour</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">day_part</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">is_weekend</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">day_of_week</TD></TR>
+</TABLE>
+>];
+  dim_geography [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#548235"><FONT COLOR="white" POINT-SIZE="13"><B>dim_geography</B></FONT></TD></TR>
+<TR><TD PORT="k" BGCOLOR="#E2EFDA" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">country_code</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">country_name</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">region</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">sub_region</TD></TR>
+</TABLE>
+>];
+  fact_playback_events [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#C55A11"><FONT COLOR="white" POINT-SIZE="13"><B>fact_playback_events</B></FONT></TD></TR>
+<TR><TD BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">event_id</TD></TR>
+<TR><TD BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>DD</B></FONT></TD><TD ALIGN="LEFT">session_id</TD></TR>
+<TR><TD PORT="fk_cust" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">customer_key</TD></TR>
+<TR><TD PORT="fk_title" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">title_key</TD></TR>
+<TR><TD PORT="fk_dev" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">device_key</TD></TR>
+<TR><TD PORT="fk_dvk" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">device_version_key</TD></TR>
+<TR><TD PORT="fk_date" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">date_key</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">event_type</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">event_timestamp</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">position_ms</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">bitrate_kbps</TD></TR>
+<TR><TD PORT="geo" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>DD</B></FONT></TD><TD ALIGN="LEFT">geo_country</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">watch_seconds_delta</TD></TR>
+</TABLE>
+>];
+  fact_view_sessions [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#C55A11"><FONT COLOR="white" POINT-SIZE="13"><B>fact_view_sessions</B></FONT></TD></TR>
+<TR><TD BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK</B></FONT></TD><TD ALIGN="LEFT">session_id</TD></TR>
+<TR><TD PORT="fk_cust" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">customer_key</TD></TR>
+<TR><TD PORT="fk_title" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">title_key</TD></TR>
+<TR><TD PORT="fk_dev" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">device_key</TD></TR>
+<TR><TD PORT="fk_dvk" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">device_version_key</TD></TR>
+<TR><TD PORT="fk_date" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>FK</B></FONT></TD><TD ALIGN="LEFT">date_key</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">session_start_ts</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">session_end_ts</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">watch_duration_seconds</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">content_duration_seconds</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">completion_pct</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">pause_count</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">seek_count</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">was_completed</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">was_force_closed</TD></TR>
+</TABLE>
+>];
+  fact_daily_engagement [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">
+<TR><TD COLSPAN="2" BGCOLOR="#C55A11"><FONT COLOR="white" POINT-SIZE="13"><B>fact_daily_engagement</B></FONT></TD></TR>
+<TR><TD PORT="fk_date" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK FK</B></FONT></TD><TD ALIGN="LEFT">date_key</TD></TR>
+<TR><TD PORT="fk_cust" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK FK</B></FONT></TD><TD ALIGN="LEFT">customer_key</TD></TR>
+<TR><TD PORT="fk_title" BGCOLOR="#FBE4D5" ALIGN="CENTER" WIDTH="34"><FONT COLOR="#1F3864" POINT-SIZE="9"><B>PK FK</B></FONT></TD><TD ALIGN="LEFT">title_key</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">engagement_date</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">sessions_count</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">total_watch_seconds</TD></TR>
+<TR><TD BGCOLOR="#FFFFFF" ALIGN="CENTER" WIDTH="34"> </TD><TD ALIGN="LEFT">completion_pct</TD></TR>
+</TABLE>
+>];
+  dim_customer:k -> fact_playback_events:fk_cust;
+  dim_title:k -> fact_playback_events:fk_title;
+  dim_device:k -> fact_playback_events:fk_dev;
+  dim_device_version:k -> fact_playback_events:fk_dvk;
+  dim_date:k -> fact_playback_events:fk_date;
+  dim_customer:k -> fact_view_sessions:fk_cust;
+  dim_title:k -> fact_view_sessions:fk_title;
+  dim_device:k -> fact_view_sessions:fk_dev;
+  dim_device_version:k -> fact_view_sessions:fk_dvk;
+  dim_date:k -> fact_view_sessions:fk_date;
+  dim_customer:k -> fact_daily_engagement:fk_cust;
+  dim_title:k -> fact_daily_engagement:fk_title;
+  dim_date:k -> fact_daily_engagement:fk_date;
+  dim_device:k -> dim_device_version:fk_dev;
+  dim_genre:k -> dim_title:k [style=dashed, color="#9E9E9E", arrowhead=crow, arrowtail=odot, fontname="Helvetica", fontsize=9, fontcolor="#7F7F7F", label="genres parse"];
+  dim_geography:k -> fact_playback_events:geo [style=dashed, color="#9E9E9E", arrowhead=crow, arrowtail=odot, fontname="Helvetica", fontsize=9, fontcolor="#7F7F7F", label="geo_country"];
+  dim_time_of_day:k -> fact_playback_events:fk_date [style=dashed, color="#9E9E9E", arrowhead=crow, arrowtail=odot, fontname="Helvetica", fontsize=9, fontcolor="#7F7F7F", label="event hour"];
+  {rank=same; fact_playback_events; fact_view_sessions; fact_daily_engagement;}
+}

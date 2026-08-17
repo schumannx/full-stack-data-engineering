@@ -1,0 +1,208 @@
+# Streaming DW — local Airflow 3.2 (CeleryExecutor) for development.
+# Rebuilt on the official Airflow 3.2 compose topology (api-server + dag-processor
+# + FAB auth manager + Task Execution API) with our customizations layered on:
+#   - custom image (build: .) that bundles the amazon provider
+#   - aws_default connection + mounted ~/.aws for dev creds
+#   - STREAMING_S3_BUCKET exposed as an Airflow Variable
+#   - a worker that also drains the `maintenance` queue (iceberg_maintenance)
+# Prod (ECS) swaps Postgres+Redis for RDS+ElastiCache and reuses the same image.
+#
+# Quick start:
+#   cp .env.example .env
+#   echo "AIRFLOW_UID=$(id -u)" >> .env
+#   # put a Fernet key (FERNET_KEY=) and a JWT secret in .env (see .env.example)
+#   docker compose build
+#   docker compose up airflow-init      # one-shot DB migrate + admin user
+#   docker compose up -d
+#   open http://localhost:8080          # login airflow / airflow
+---
+x-airflow-common: &airflow-common
+  build: .
+  env_file:
+    - .env
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+    AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY:-}
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    # In Airflow 3, workers/tasks reach the metadata layer via the Task Execution
+    # API on the api-server (no direct DB access from tasks).
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-apiserver:8080/execution/"
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-change_me_jwt_secret}
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    # --- project customizations ---
+    AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+    AIRFLOW_CONN_AWS_DEFAULT: "aws://?region_name=${AWS_DEFAULT_REGION:-us-east-1}"
+    AIRFLOW_VAR_STREAMING_S3_BUCKET: ${STREAMING_S3_BUCKET:-acme-dw-streaming-xs2026}
+    # dbt + Cosmos: project mounted at /opt/airflow/dbt; dbt runs in its own venv.
+    DBT_PROJECT_DIR: /opt/airflow/dbt/streaming
+    DBT_EXECUTABLE_PATH: /opt/airflow/dbt_venv/bin/dbt
+    DBT_TARGET: ${DBT_TARGET:-dev}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./plugins:/opt/airflow/plugins
+    - ./config:/opt/airflow/config
+    - ./logs:/opt/airflow/logs
+    - ../common:/opt/airflow/common:ro          # shared validation module (PLAN_v2.md §4)
+    - ${HOME}/.aws:/home/airflow/.aws:ro         # dev creds only; prod uses the ECS task role
+    - ../dbt:/opt/airflow/dbt                     # dbt project for Cosmos (rw: dbt writes target/)
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  redis:
+    image: redis:7.2-bookworm
+    expose:
+      - 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+    restart: always
+
+  # Replaces the 2.x webserver. Serves the new React UI AND the REST API (/api/v2)
+  # AND the Task Execution API (/execution/) on port 8080.
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      # Parameterized so blue/green stacks can bind different host ports
+      # (blue=8080, green=8081). See deploy/blue-green/README.md.
+      - "${AIRFLOW_HTTP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # New in Airflow 3: DAG file parsing runs in its own service, not the scheduler.
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-worker:
+    <<: *airflow-common
+    # Drain BOTH the default (hot-path) and maintenance (compaction) queues so the
+    # single dev worker runs iceberg_maintenance tasks routed to queue="maintenance".
+    command: celery worker -q default,maintenance
+    healthcheck:
+      test: ["CMD-SHELL", 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    environment:
+      <<: *airflow-common-env
+      DUMB_INIT_SETSID: "0"   # clean warm-shutdown of celery workers
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-apiserver:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # One-shot: the entrypoint runs DB migrate + creates the admin user, then exits.
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/{logs,dags,plugins,config}
+        /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+    user: "0:0"
+
+  # Optional Celery monitoring UI:  docker compose --profile flower up flower
+  flower:
+    <<: *airflow-common
+    command: celery flower
+    profiles: ["flower"]
+    ports:
+      - "5555:5555"
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-db-volume:

@@ -1,0 +1,36 @@
+digraph OV {
+  rankdir=LR;
+  bgcolor="white";
+  graph [nodesep=0.5, ranksep=1.7, pad=0.3];
+  node [shape=plaintext, fontname="Helvetica"];
+  edge [color="#595959", penwidth=1.4, dir=both, arrowhead=crow, arrowtail=tee];
+  dim_customer [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_customer</B></FONT></TD></TR></TABLE>>];
+  dim_title [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_title</B></FONT></TD></TR></TABLE>>];
+  dim_device [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_device</B></FONT></TD></TR></TABLE>>];
+  dim_device_version [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_device_version</B></FONT></TD></TR></TABLE>>];
+  dim_date [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#4472C4"><FONT COLOR="white" POINT-SIZE="13"><B>dim_date</B></FONT></TD></TR></TABLE>>];
+  dim_genre [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#548235"><FONT COLOR="white" POINT-SIZE="13"><B>dim_genre</B></FONT></TD></TR></TABLE>>];
+  dim_time_of_day [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#548235"><FONT COLOR="white" POINT-SIZE="13"><B>dim_time_of_day</B></FONT></TD></TR></TABLE>>];
+  dim_geography [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#548235"><FONT COLOR="white" POINT-SIZE="13"><B>dim_geography</B></FONT></TD></TR></TABLE>>];
+  fact_playback_events [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#C55A11"><FONT COLOR="white" POINT-SIZE="13"><B>fact_playback_events</B></FONT></TD></TR></TABLE>>];
+  fact_view_sessions [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#C55A11"><FONT COLOR="white" POINT-SIZE="13"><B>fact_view_sessions</B></FONT></TD></TR></TABLE>>];
+  fact_daily_engagement [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8"><TR><TD BGCOLOR="#C55A11"><FONT COLOR="white" POINT-SIZE="13"><B>fact_daily_engagement</B></FONT></TD></TR></TABLE>>];
+  dim_customer -> fact_playback_events;
+  dim_title -> fact_playback_events;
+  dim_device -> fact_playback_events;
+  dim_device_version -> fact_playback_events;
+  dim_date -> fact_playback_events;
+  dim_customer -> fact_view_sessions;
+  dim_title -> fact_view_sessions;
+  dim_device -> fact_view_sessions;
+  dim_device_version -> fact_view_sessions;
+  dim_date -> fact_view_sessions;
+  dim_customer -> fact_daily_engagement;
+  dim_title -> fact_daily_engagement;
+  dim_date -> fact_daily_engagement;
+  dim_device -> dim_device_version;
+  dim_genre -> dim_title [style=dashed,color="#9E9E9E",arrowtail=odot,arrowhead=crow,fontsize=9,fontcolor="#7F7F7F",label="genres"];
+  dim_geography -> fact_playback_events [style=dashed,color="#9E9E9E",arrowtail=odot,arrowhead=crow,fontsize=9,fontcolor="#7F7F7F",label="geo"];
+  dim_time_of_day -> fact_playback_events [style=dashed,color="#9E9E9E",arrowtail=odot,arrowhead=crow,fontsize=9,fontcolor="#7F7F7F",label="hour"];
+  {rank=same; fact_playback_events; fact_view_sessions; fact_daily_engagement;}
+}

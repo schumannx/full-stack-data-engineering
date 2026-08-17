@@ -1,0 +1,31 @@
+# dbt model: models/reporting/schema.yml
+# This is the GOOD kind of YAML — it's data contracts/tests, not orchestration wiring.
+# It replaces chunks of common/validation.py with declarative tests dbt runs for you
+# (and Cosmos surfaces each as its own Airflow task: test_content_engagement_daily_*).
+
+version: 2
+
+models:
+  - name: content_engagement_daily
+    description: "Per-title daily engagement marts (was the `content` block in reporting_aggregates.py)."
+    columns:
+      - name: title_key
+        tests:
+          - not_null
+      - name: engagement_date
+        tests:
+          - not_null
+      - name: completion_rate
+        # was a hand-written reconciliation assertion in validation.py
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+      - name: distinct_viewers
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+    # uniqueness on the grain — replaces a manual "no dup keys" check
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [engagement_date, title_key]

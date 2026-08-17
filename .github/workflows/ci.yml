@@ -1,0 +1,70 @@
+# CI — validate that the Airflow DAGs import cleanly.
+#
+# This runs ENTIRELY on GitHub's runner with NO secrets and NO access to your
+# Airflow — it just installs Airflow 2.10.5 (same version as your Dockerfile),
+# loads the dags folder into a DagBag, and fails if any DAG has a syntax/import
+# error. It's the standard "did I break a DAG?" gate and gives you a green check
+# on every push/PR. Start here to see GitHub Actions actually run.
+
+name: CI — validate DAGs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "airflow/dags/**"
+      - "airflow/requirements.txt"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "airflow/dags/**"
+
+jobs:
+  validate-dags:
+    runs-on: ubuntu-latest
+    env:
+      AIRFLOW_VERSION: "3.2.2"
+      PYTHON_VERSION: "3.12"
+      AIRFLOW_HOME: ${{ github.workspace }}/.airflow_home
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      # config.py calls Variable.get(...) at import time. Airflow resolves
+      # AIRFLOW_VAR_* from the environment before hitting the DB, so this lets the
+      # DAGs import without a populated metadata DB.
+      AIRFLOW_VAR_STREAMING_S3_BUCKET: "ci-placeholder-bucket"
+      # The Cosmos DAG parses the dbt project at this path (the checkout) via
+      # LoadMode.CUSTOM — no dbt binary or warehouse needed at parse time.
+      DBT_PROJECT_DIR: ${{ github.workspace }}/dbt/streaming
+      DBT_EXECUTABLE_PATH: /usr/bin/true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Airflow + providers (version-constrained)
+        run: |
+          CONSTRAINTS="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+          pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "$CONSTRAINTS"
+          pip install -r airflow/requirements.txt --constraint "$CONSTRAINTS"
+
+      - name: Initialize metadata DB (sqlite, throwaway)
+        run: airflow db migrate
+
+      - name: Check DAGs import without errors
+        run: |
+          python - <<'PY'
+          import os, sys
+          # Airflow puts the dags folder on sys.path at runtime; replicate that so
+          # `from common import config` resolves to airflow/dags/common (not the
+          # top-level common/ which only has validation.py).
+          sys.path.insert(0, os.path.abspath("airflow/dags"))
+          from airflow.models import DagBag
+          bag = DagBag("airflow/dags", include_examples=False)
+          if bag.import_errors:
+              for path, err in bag.import_errors.items():
+                  print(f"::error file={path}::{err}")
+              raise SystemExit(f"{len(bag.import_errors)} DAG import error(s)")
+          print(f"OK — {len(bag.dags)} DAG(s) imported cleanly: {sorted(bag.dags)}")
+          PY

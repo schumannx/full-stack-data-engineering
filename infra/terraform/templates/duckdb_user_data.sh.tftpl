@@ -1,0 +1,23 @@
+#!/bin/bash
+# Bootstrap a read-only DuckDB validation node on Amazon Linux 2023.
+# Installs the DuckDB CLI + extensions and clones the repo for validate.sql.
+# AWS creds come from the (read-only) instance role via the credential chain.
+set -euxo pipefail
+exec > /var/log/duckdb-bootstrap.log 2>&1
+
+dnf install -y unzip git
+
+# DuckDB CLI (x86_64 = amd64 on t3.*).
+curl -fsSL "https://github.com/duckdb/duckdb/releases/download/v1.5.3/duckdb_cli-linux-amd64.zip" -o /tmp/duckdb.zip
+unzip -o /tmp/duckdb.zip -d /usr/local/bin
+chmod +x /usr/local/bin/duckdb
+
+# Repo for analytics/duckdb/validate.sql.
+rm -rf /opt/streaming
+git clone --branch ${branch} --depth 1 ${repo_url} /opt/streaming
+
+# Pre-install the extensions so the first validate run is fast.
+/usr/local/bin/duckdb -c "INSTALL httpfs; INSTALL aws; INSTALL iceberg;"
+
+echo "DuckDB ready. Validate the marts with:"
+echo "  duckdb < /opt/streaming/analytics/duckdb/validate.sql"

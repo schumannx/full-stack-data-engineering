@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Cloud-init bootstrap for the single-node Kafka broker + always-on landing
+# consumer. The broker (KRaft) and the consumer run on the same host, which is
+# why streaming-consumer.service points at localhost:9092 (kafka/systemd/...).
+set -euxo pipefail
+
+REGION="${region}"
+OPS_BUCKET="${ops_bucket}"
+DATA_BUCKET="${data_bucket}"
+APP_DIR=/opt/streaming/kafka
+
+dnf install -y python3.11 python3.11-pip awscli git
+
+# --- pull the kafka layer from the ops bucket ---------------------------------
+mkdir -p "$APP_DIR"
+aws s3 cp "s3://$OPS_BUCKET/kafka/" "$APP_DIR/" --recursive --region "$REGION"
+chmod +x "$APP_DIR"/bootstrap/*.sh
+
+# --- broker: install, format, start as a systemd service ----------------------
+ADVERTISED_HOST=localhost bash "$APP_DIR/bootstrap/kraft_setup.sh"
+
+# --- python env for the consumer + table bootstrap ----------------------------
+python3.11 -m venv "$APP_DIR/.venv"
+"$APP_DIR/.venv/bin/pip" install --upgrade pip
+"$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+
+# --- topic + landing Iceberg table --------------------------------------------
+export KAFKA_BOOTSTRAP=localhost:9092
+export AWS_REGION="$REGION"
+export STREAMING_S3_BUCKET="$DATA_BUCKET"
+bash "$APP_DIR/bootstrap/create_topic.sh"
+"$APP_DIR/.venv/bin/python" "$APP_DIR/create_landing_table.py"
+
+# --- consumer service ---------------------------------------------------------
+chown -R ec2-user:ec2-user /opt/streaming
+cp "$APP_DIR/systemd/streaming-consumer.service" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now streaming-consumer

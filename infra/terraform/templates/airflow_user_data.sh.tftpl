@@ -1,0 +1,44 @@
+#!/bin/bash
+# Bootstrap one Airflow blue/green stack (${color}) on Amazon Linux 2023.
+# Clones the repo, builds the custom image, runs the 3.2 CeleryExecutor compose.
+# AWS creds come from the instance role (no ~/.aws) via IMDSv2 (hop limit 2).
+set -euxo pipefail
+exec > /var/log/airflow-bootstrap.log 2>&1
+
+dnf update -y
+dnf install -y docker git
+systemctl enable --now docker
+
+# Docker Compose v2 as a CLI plugin.
+mkdir -p /usr/libexec/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+  -o /usr/libexec/docker/cli-plugins/docker-compose
+chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+
+# Pull the repo and run THIS color's stack.
+rm -rf /opt/streaming
+git clone --branch ${branch} --depth 1 ${repo_url} /opt/streaming
+cd /opt/streaming/airflow
+
+FERNET=$$(openssl rand -base64 32 | tr '+/' '-_')
+JWT=$$(openssl rand -hex 32)
+cat > .env <<EOF
+AIRFLOW_UID=50000
+FERNET_KEY=$${FERNET}
+AIRFLOW__API_AUTH__JWT_SECRET=$${JWT}
+AWS_DEFAULT_REGION=${region}
+STREAMING_S3_BUCKET=${data_bucket}
+AIRFLOW_HTTP_PORT=${http_port}
+# Default to the scratch dbt schema so a freshly-booted stack never clobbers the
+# real streaming_reporting marts. Flip to dev at cutover.
+DBT_TARGET=safe
+_AIRFLOW_WWW_USER_USERNAME=airflow
+_AIRFLOW_WWW_USER_PASSWORD=airflow
+EOF
+
+export COMPOSE_PROJECT_NAME=${project}
+docker compose build
+docker compose up airflow-init
+docker compose up -d
+
+echo "Airflow ${color} stack up (project ${project}) on host port ${http_port}"

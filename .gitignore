@@ -1,0 +1,38 @@
+# ---- Secrets / credentials (NEVER commit) ----
+.env
+*.env
+!*.env.example
+!.env.example
+*.pem
+*.key
+credentials
+credentials.json
+aws_credentials
+.aws/
+
+# ---- Terraform (state holds plaintext secrets!) ----
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars          # contains config; un-ignore specific safe ones below if desired
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+
+# ---- Python ----
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ---- OS / editor ----
+.DS_Store
+.idea/
+*.swp

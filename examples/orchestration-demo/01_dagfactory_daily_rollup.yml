@@ -1,0 +1,69 @@
+# dag-factory version of airflow/dags/daily_rollup.py
+# Install: pip install dag-factory ; then a loader .py calls load_yaml_dags() (see 01_dagfactory_loader.py)
+#
+# Read this next to the real daily_rollup.py. Two things to notice:
+#   (a) the GlueJobOperator tasks DO translate cleanly to YAML — they're pure wiring.
+#   (b) validate_etl does NOT. It has real Python (AthenaHook + validation.py), so it
+#       degrades to a PythonOperator that points at a separate file. The logic didn't
+#       vanish — it moved to 01_dagfactory_loader.py and you lost type-checking on it.
+
+daily_rollup:
+  default_args:
+    owner: schumannx
+    retries: 2
+    retry_exponential_backoff: true
+  # LIMITATION: the real DAG uses
+  #   DatasetOrTimeSchedule(CronTriggerTimetable("0 2 * * *"), datasets=[RAW_EVENTS])
+  # dag-factory can't express the "Asset OR cron" timetable combo — this is the
+  # best you get, a plain cron. You lose the data-aware trigger on RAW_EVENTS.
+  schedule_interval: "0 2 * * *"
+  start_date: 2026-05-01
+  catchup: false
+  tags: [streaming, daily, reporting]
+
+  tasks:
+    glue_dims_refresh:
+      operator: airflow.providers.amazon.aws.operators.glue.GlueJobOperator
+      job_name: streaming_processed_dims
+      aws_conn_id: aws_default
+      region_name: us-east-1
+
+    glue_fact_daily_engagement:
+      operator: airflow.providers.amazon.aws.operators.glue.GlueJobOperator
+      job_name: streaming_fact_daily_engagement
+      script_args:
+        "--engagement_date": "{{ dag_run.conf.get('engagement_date') or ds }}"
+      aws_conn_id: aws_default
+      region_name: us-east-1
+      dependencies: [glue_dims_refresh]
+
+    glue_reporting_aggregates:
+      operator: airflow.providers.amazon.aws.operators.glue.GlueJobOperator
+      job_name: streaming_reporting_aggregates
+      script_args:
+        "--engagement_date": "{{ dag_run.conf.get('engagement_date') or ds }}"
+      aws_conn_id: aws_default
+      region_name: us-east-1
+      dependencies: [glue_fact_daily_engagement]
+
+    # ---- The awkward one ----
+    # @task validate_etl had ~40 lines of inline Python. YAML can't hold logic, so it
+    # becomes a PythonOperator referencing a function in another file. Python persists.
+    validate_etl:
+      operator: airflow.operators.python.PythonOperator
+      python_callable_name: validate_etl
+      python_callable_file: /opt/airflow/dags/callables/rollup_callables.py
+      dependencies: [glue_reporting_aggregates]
+
+    lambda_render_html:
+      operator: airflow.providers.amazon.aws.operators.lambda_function.LambdaInvokeFunctionOperator
+      function_name: streaming_html_render
+      aws_conn_id: aws_default
+      region_name: us-east-1
+      dependencies: [validate_etl]
+
+    write_run_metadata:
+      operator: airflow.operators.python.PythonOperator
+      python_callable_name: write_run_metadata
+      python_callable_file: /opt/airflow/dags/callables/rollup_callables.py
+      dependencies: [lambda_render_html]
